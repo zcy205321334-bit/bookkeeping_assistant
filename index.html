@@ -119,6 +119,9 @@
                             </div>
                             <p class="text-gray-600 mb-2">点击或拖拽图片到此处上传</p>
                             <p class="text-gray-400 text-sm">支持 JPG、PNG、WEBP 格式</p>
+                            <button id="browseBtn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                <i class="fa fa-folder-open mr-2"></i>选择图片
+                            </button>
                             <input type="file" id="fileInput" class="hidden" accept="image/*">
                             <div id="errorMessage" class="mt-4 text-red-600 hidden"></div>
                         </div>
@@ -409,12 +412,20 @@
             // 上传区域点击
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
             
             uploadArea.addEventListener('click', (e) => {
-                // 确保点击的不是隐藏的 input 元素
-                if (e.target !== fileInput) {
+                // 确保点击的不是隐藏的 input 元素和浏览按钮
+                if (e.target !== fileInput && e.target !== browseBtn) {
                     fileInput.click();
                 }
+            });
+            
+            // 浏览按钮点击
+            browseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInput.click();
             });
             
             // 阻止默认行为，防止拖拽文件时在浏览器中打开
