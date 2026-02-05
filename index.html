@@ -29,15 +29,45 @@
             display: block;
         }
         
+        .upload-container {
+            width: 100%;
+        }
+        
         .upload-area {
             border: 2px dashed #d1d5db;
             transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
         }
         
-        .upload-area:hover,
-        .upload-area.dragover {
+        .upload-area:hover {
             border-color: #3b82f6;
             background-color: #f3f4f6;
+        }
+        
+        .upload-area.drag-over {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        
+        .upload-area.drag-over .upload-icon i {
+            color: #3b82f6;
+            transform: scale(1.1);
+            transition: all 0.3s ease;
+        }
+        
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+        }
+        
+        .loading-spinner i {
+            font-size: 1.2rem;
+        }
+        
+        #errorMessage {
+            font-size: 0.9rem;
         }
         
         .progress-bar {
@@ -82,22 +112,34 @@
             <div class="tab-content active" id="upload">
                 <div class="py-6">
                     <h2 class="text-xl font-semibold mb-4">上传账单图片</h2>
-                    <div class="upload-area rounded-lg p-8 text-center" id="uploadArea">
-                        <i class="fa fa-cloud-upload text-4xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-600 mb-2">点击或拖拽图片到此处上传</p>
-                        <p class="text-gray-400 text-sm">支持 JPG、PNG、WEBP 格式</p>
-                        <input type="file" id="fileInput" class="hidden" accept="image/*">
-                    </div>
-                    
-                    <div id="previewContainer" class="mt-6 hidden">
-                        <h3 class="text-lg font-medium mb-2">预览</h3>
-                        <div class="flex items-center justify-center mb-4">
-                            <img id="previewImage" class="max-h-64 object-contain" src="" alt="预览">
+                    <div class="upload-container">
+                        <div class="upload-area rounded-lg p-8 text-center" id="uploadArea">
+                            <div class="upload-icon">
+                                <i class="fa fa-cloud-upload text-4xl text-gray-400 mb-4"></i>
+                            </div>
+                            <p class="text-gray-600 mb-2">点击或拖拽图片到此处上传</p>
+                            <p class="text-gray-400 text-sm">支持 JPG、PNG、WEBP 格式</p>
+                            <input type="file" id="fileInput" class="hidden" accept="image/*">
+                            <div id="errorMessage" class="mt-4 text-red-600 hidden"></div>
                         </div>
-                        <div class="progress-bar mb-4 hidden" id="progressBar">
-                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        
+                        <div id="previewContainer" class="mt-6 hidden">
+                            <h3 class="text-lg font-medium mb-2">预览</h3>
+                            <div class="flex items-center justify-center mb-4">
+                                <img id="previewImage" class="max-h-64 object-contain" src="" alt="预览">
+                            </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <p id="fileName" class="text-gray-600"></p>
+                                <div class="loading-spinner hidden" id="loadingSpinner">
+                                    <i class="fa fa-spinner fa-spin text-blue-600"></i>
+                                    <span class="ml-2 text-gray-600">处理中...</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar mb-4 hidden" id="progressBar">
+                                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                            </div>
+                            <p id="progressText" class="text-gray-600 mb-4 hidden">识别中...</p>
                         </div>
-                        <p id="progressText" class="text-gray-600 mb-4 hidden">识别中...</p>
                     </div>
                     
                     <div id="resultContainer" class="mt-6 hidden">
@@ -368,29 +410,50 @@
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('fileInput');
             
-            uploadArea.addEventListener('click', () => {
-                fileInput.click();
+            uploadArea.addEventListener('click', (e) => {
+                // 确保点击的不是隐藏的 input 元素
+                if (e.target !== fileInput) {
+                    fileInput.click();
+                }
             });
             
-            // 文件选择
-            fileInput.addEventListener('change', handleFileSelect);
-            
-            // 拖拽功能
+            // 阻止默认行为，防止拖拽文件时在浏览器中打开
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                uploadArea.classList.add('dragover');
+                e.stopPropagation();
+                uploadArea.classList.add('drag-over');
             });
             
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
+            uploadArea.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.add('drag-over');
+            });
+            
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // 只有当鼠标离开整个上传区域时才移除 drag-over 类
+                if (e.currentTarget.contains(e.relatedTarget)) {
+                    return;
+                }
+                uploadArea.classList.remove('drag-over');
             });
             
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
-                uploadArea.classList.remove('dragover');
+                e.stopPropagation();
+                uploadArea.classList.remove('drag-over');
                 
                 if (e.dataTransfer.files.length > 0) {
                     handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // 文件选择
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
                 }
             });
             
@@ -433,37 +496,65 @@
             document.getElementById('importFileInput').addEventListener('change', handleImportFile);
         }
         
-        // 处理文件选择
-        function handleFileSelect(e) {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
-        }
-        
         // 处理文件
         function handleFile(file) {
+            // 重置错误信息
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.classList.add('hidden');
+            errorMessage.textContent = '';
+            
+            // 验证文件类型
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                errorMessage.textContent = '仅支持 JPG/PNG/WEBP 格式';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+            
+            // 验证文件大小（10 MB）
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                errorMessage.textContent = '文件大小不能超过 10MB';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+            
+            // 显示文件名
+            const fileName = document.getElementById('fileName');
+            fileName.textContent = `文件名: ${file.name}`;
+            
             // 显示预览
             const previewContainer = document.getElementById('previewContainer');
             const previewImage = document.getElementById('previewImage');
+            const loadingSpinner = document.getElementById('loadingSpinner');
             
             previewContainer.classList.remove('hidden');
+            loadingSpinner.classList.remove('hidden');
             
             const reader = new FileReader();
             reader.onload = (e) => {
                 previewImage.src = e.target.result;
                 
                 // 开始 OCR 识别
-                recognizeText(e.target.result);
+                recognizeText(e.target.result, file.name);
             };
+            
+            reader.onerror = () => {
+                errorMessage.textContent = '图片上传失败，请重试';
+                errorMessage.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+            };
+            
             reader.readAsDataURL(file);
         }
         
         // OCR 识别
-        async function recognizeText(imageData) {
+        async function recognizeText(imageData, fileName) {
             const progressBar = document.getElementById('progressBar');
             const progressFill = document.getElementById('progressFill');
             const progressText = document.getElementById('progressText');
             const resultContainer = document.getElementById('resultContainer');
+            const loadingSpinner = document.getElementById('loadingSpinner');
             
             // 显示进度条
             progressBar.classList.remove('hidden');
@@ -499,7 +590,8 @@
                 progressText.textContent = '识别失败，请重试';
                 progressText.classList.add('text-red-600');
             } finally {
-                // 隐藏进度条
+                // 隐藏加载动画和进度条
+                loadingSpinner.classList.add('hidden');
                 setTimeout(() => {
                     progressBar.classList.add('hidden');
                     progressText.classList.add('hidden');
