@@ -1020,7 +1020,7 @@
             });
         }
         
-        // 更新月度趋势图
+        // 更新月度趋势���
         function updateTrendChart(monthlyExpenses) {
             const ctx = document.getElementById('trendChart').getContext('2d');
             
@@ -1168,5 +1168,9 @@
         // 初始化应用
         window.addEventListener('DOMContentLoaded', init);
     </script>
+    <script>
+        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>
